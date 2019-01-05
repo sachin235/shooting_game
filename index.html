@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+
+  <style id="webmakerstyle">
+    body {
+      padding: 0;
+      margin: 0;
+    }
+
+    .score {
+      font-size: 300px;
+      position: absolute;
+      pointer-events: none;
+      left: 0;
+      right: 0;
+      text-align: center;
+      top: 30%;
+      opacity: 0.1;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="c"></canvas>
+  <div class="score" id="scoreEl">0</div>
+
+  <script>
+    const ctx = c.getContext('2d');
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    c.width = W;
+    c.height = H;
+    let items = [];
+    let score = 0;
+    let shakeTimer = 0;
+
+    const player = {
+      x: W / 2,
+      y: H - 100,
+      speed: 15,
+      update() {},
+      render() {
+        ctx.beginPath();
+        ctx.fillStyle = 'black';
+        ctx.rect(this.x, this.y, 50, 50);
+        ctx.closePath();
+        ctx.fill();
+      }
+    };
+    items.push(player);
+
+    const enemy = {
+      type: 'enemy',
+      x: W / 2,
+      y: 0,
+      width: 50,
+      height: 50,
+      speed: 1,
+      update() {
+        this.y += this.speed;
+      },
+      render() {
+        ctx.beginPath();
+        ctx.fillStyle = 'red';
+        ctx.rect(this.x, this.y, 50, 50);
+        ctx.closePath();
+        ctx.fill();
+      }
+    };
+
+    const bullet = {
+      type: 'bullet',
+      x: 0,
+      y: H - 100,
+      width: 10,
+      height: 10,
+      speed: 20,
+      update() {
+        this.y -= this.speed;
+      },
+      render() {
+        ctx.beginPath();
+        ctx.fillStyle = 'red';
+        ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.fill();
+      }
+    };
+
+    function shake() {
+      shakeTimer = 30;
+    }
+
+    function update() {
+      if (Math.random() < 0.01) {
+        items.push({ ...enemy,
+          x: Math.random() * W
+        });
+      }
+      if (shakeTimer > 0) {
+        shakeTimer--;
+        document.body.style.marginLeft = Math.random() * 10 - 5 + 'px';
+        document.body.style.marginTop = Math.random() * 10 - 5 + 'px';
+      }
+      // console.log(99)
+
+      const bullets = items.filter(item => item.type === 'bullet');
+      bullets.forEach(bullet => {
+        items.filter(item => item.type === 'enemy').forEach(enemy => {
+          if (isColliding(bullet, enemy)) {
+            enemy.dead = bullet.dead = true;
+            scoreEl.textContent = ++score;
+            shake();
+          }
+        });
+      });
+      items = items.filter(item => !item.dead);
+      items.forEach(item => item.update());
+    }
+
+    function isColliding(a, b) {
+      return !(
+        a.x > b.x + b.width ||
+        a.x + a.width < b.x || a.y > b.y + b.height ||
+        a.y + a.height < b.y);
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, W, H);
+      items.forEach(item => item.render());
+    }
+
+    function loop() {
+      update();
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    loop();
+
+    window.addEventListener('keydown', e => {
+      if (e.which === 37) {
+        player.x -= player.speed;
+      } else if (e.which === 39) {
+        player.x += player.speed;
+      } else if (e.which === 32) {
+        // SPACEBAR
+        e.preventDefault();
+        items.push({
+          ...bullet,
+          x: player.x
+        });
+      }
+    });
+  </script>
+</body>
+
+</html>
